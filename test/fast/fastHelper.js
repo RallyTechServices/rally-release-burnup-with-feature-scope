@@ -43,3 +43,15 @@ Ext.define('mockCFD',{
         {name:'TaskEstimateTotal',type:'int'}
     ]
 });
+
+Ext.define('mockSnap',{
+    extend: 'Ext.data.Model',
+    fields: [
+        {name:'ObjectID',type:'int'},
+        {name:'Project',type:'int'},
+        {name:'ScheduleState',type:'string'},
+        {name:'Blocked',type:'boolean'},
+        {name:'c_Effort',type:'float'},
+        {name:'c_PIPlanEstimate',type:'float'}
+    ]
+});

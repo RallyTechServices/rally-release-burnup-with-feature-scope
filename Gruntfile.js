@@ -13,7 +13,8 @@ module.exports = function(grunt) {
         config.js_files = grunt.file.expand( 'src/javascript/*.js' );
         config.css_files = grunt.file.expand( 'src/style/*.css' );
         config.checksum = "<!= checksum !>";
-        
+        //config.init_path = grunt.hostname();
+
         config.js_contents = " ";
         for (var i=0;i<config.js_files.length;i++) {
             grunt.log.writeln( config.js_files[i]);
