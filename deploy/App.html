@@ -3,11 +3,11 @@
 <head>
     <title>Release Burndown with Feature Scope</title>
     <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sun Jan 26 2014 14:44:28 GMT-0800 (PST) -->
+    <!--  Build Date: Sun Jan 26 2014 15:47:11 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sun Jan 26 2014 14:44:28 GMT-0800 (PST)";
-        var CHECKSUM = 18496584305;
+        var APP_BUILD_DATE = "Sun Jan 26 2014 15:47:11 GMT-0800 (PST)";
+        var CHECKSUM = 21192503965;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc2/sdk.js"></script>
@@ -28,8 +28,10 @@
     group_totals: {},
     fields: [
         {name:'JSDate',type:'date',defaultValue:new Date()},
-        {name:'baselineFieldName',type:'string',defaultValue:'c_PIPlanEstimate'}, /* the name of the field with a value to add (or count), remember the c_! */
-        {name:'baselineTotal',type:'number',defaultValue:0}
+        {name:'piSizeFieldName',type:'string',defaultValue:'c_PIPlanEstimate'}, /* the name of the field with a value to add (or count), remember the c_! */
+        {name:'piSizeTotal',type:'number',defaultValue:0},
+        {name:'wpSizeFieldName',type:'string',defaultValue:'PlanEstimate'},
+        {name:'wpSizeTotal',type:'number',defaultValue:0}
     ],
     constructor: function(data) {
         this.group_totals = {};
@@ -40,19 +42,46 @@
      * @param {} snap
      */
     addSnap: function(snap){
-        var baseline_total = this.get('baselineTotal');
-        var baseline_field_name = this.get('baselineFieldName');
+        var record_type_hierarchy = snap.get('_TypeHierarchy');
+        if ( !record_type_hierarchy || Ext.Array.indexOf(record_type_hierarchy,'PortfolioItem') !== -1 ) {
+            this._updatePIData(snap);
+        }
+        if ( !record_type_hierarchy || 
+            Ext.Array.indexOf(record_type_hierarchy,'HierarchicalRequirement') !== -1 || 
+            Ext.Array.indexOf(record_type_hierarchy,'Defect') !== -1 ) {
+            
+            this._updateWPData(snap);
+        }
+    },
+    _updatePIData:function(snap){
+        var pi_total = this.get('piSizeTotal');
+        var pi_field_name = this.get('piSizeFieldName');
         
         var value_in_snap = 0;
-        if ( baseline_field_name === "Count" ) {
+        if ( pi_field_name === "Count" ) {
             value_in_snap = 1;
         } else {
-            if (Ext.isNumber(snap.get(baseline_field_name))) {
-                value_in_snap = snap.get(baseline_field_name);
+            if (Ext.isNumber(snap.get(pi_field_name))) {
+                value_in_snap = snap.get(pi_field_name);
             }
         }
-        baseline_total = baseline_total + value_in_snap;
-        this.set('baselineTotal',baseline_total);
+        pi_total = pi_total + value_in_snap;
+        this.set('piSizeTotal',pi_total);
+    },
+    _updateWPData:function(snap){
+        var wp_total = this.get('wpSizeTotal');
+        var wp_field_name = this.get('wpSizeFieldName');
+        
+        var value_in_snap = 0;
+        if ( wp_field_name === "Count" ) {
+            value_in_snap = 1;
+        } else {
+            if (Ext.isNumber(snap.get(wp_field_name))) {
+                value_in_snap = snap.get(wp_field_name);
+            }
+        }
+        wp_total = wp_total + value_in_snap;
+        this.set('wpSizeTotal',wp_total);
     }
     
  });
@@ -303,6 +332,7 @@ Ext.define('CustomApp', {
     componentCls: 'app',
     logger: new Rally.technicalservices.Logger(),
     alternate_pi_size_field: 'c_PIPlanEstimate',
+    alternate_wp_size_field: 'PlanEstimate',
     defaults: { padding: 5, margin: 5 },
     items: [
         {xtype:'container',itemId:'selector_box'},
@@ -367,7 +397,7 @@ Ext.define('CustomApp', {
             day_to_week_switch_point: 30,
             baseline_field_name: field_name,
             release_oids: release_oids,
-            model_type: 'PortfolioItem'
+            model_types: ['HierarchicalRequirement','Defect','TestSet','PortfolioItem']
         };
         var config = this.config;
         this.logger.log("Getting array of days ",config.start_date,config.end_date,true,config.day_to_week_switch_point);
@@ -395,18 +425,20 @@ Ext.define('CustomApp', {
         this.logger.log("fetching snapshots at ", day);
         var project = this.getContext().getProject().ObjectID;
         var day_calculator = Ext.create('TSDay',{
-            baselineFieldName: config.baseline_field_name,
+            piSizeFieldName: me.alternate_pi_size_field,
+            wpSizeFieldName: me.alternate_wp_size_field,
             JSDate: day
         });
         
         if ( day < new Date() ) {
             this.logger.log("creating store");
             Ext.create('Rally.data.lookback.SnapshotStore',{
-                fetch: [config.baseline_field_name],
+                fetch: [me.alternate_pi_size_field,me.alternate_wp_size_field,"_TypeHierarchy"],
+                hydrate: ['_TypeHierarchy'],
                 autoLoad: true,
                 filters: [
                     {property:'Release',operator:'in',value:config.release_oids},
-                    {property:'_TypeHierarchy',value:config.model_type},
+                    {property:'_TypeHierarchy',operator:'in',value:config.model_types},
                     {property:'__At',operator:'=',value:Rally.util.DateTime.toIsoString(day)},
                     {property:'_ProjectHierarchy', value:project}
                 ],
@@ -490,16 +522,22 @@ Ext.define('CustomApp', {
         this.logger.log("_getSeries");
         var series = [];
         
-        var baseline_data = [];
+        var pi_size_data = [];
+        var wp_size_data = [];
         Ext.Array.each(days, function(day){
-            var group_value = day.get('baselineTotal');
+            var pi_size = day.get('piSizeTotal');
+            var wp_size = day.get('wpSizeTotal');
             if ( day.get('JSDate') > new Date() ) {
-                group_value = null;
+                pi_size = null;
+                wp_size = null;
             }
-            baseline_data.push(group_value);
+            pi_size_data.push(pi_size);
+            wp_size_data.push(wp_size);
         });
         
-        series.push({type:'line',name:'Feature Scope',data:baseline_data});
+        series.push({type:'line',name:'Feature Scope',data:pi_size_data});
+        series.push({type:'line',name:'WorkProduct Scope',data:wp_size_data});
+        
         return series;
     },
     /*

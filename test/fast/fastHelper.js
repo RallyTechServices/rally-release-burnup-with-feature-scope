@@ -52,6 +52,7 @@ Ext.define('mockSnap',{
         {name:'ScheduleState',type:'string'},
         {name:'Blocked',type:'boolean'},
         {name:'c_Effort',type:'float'},
-        {name:'c_PIPlanEstimate',type:'float'}
+        {name:'c_PIPlanEstimate',type:'float'},
+        {name:'PlanEstimate',type:'float'}
     ]
 });

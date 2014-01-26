@@ -3,6 +3,7 @@ Ext.define('CustomApp', {
     componentCls: 'app',
     logger: new Rally.technicalservices.Logger(),
     alternate_pi_size_field: 'c_PIPlanEstimate',
+    alternate_wp_size_field: 'PlanEstimate',
     defaults: { padding: 5, margin: 5 },
     items: [
         {xtype:'container',itemId:'selector_box'},
@@ -67,7 +68,7 @@ Ext.define('CustomApp', {
             day_to_week_switch_point: 30,
             baseline_field_name: field_name,
             release_oids: release_oids,
-            model_type: 'PortfolioItem'
+            model_types: ['HierarchicalRequirement','Defect','TestSet','PortfolioItem']
         };
         var config = this.config;
         this.logger.log("Getting array of days ",config.start_date,config.end_date,true,config.day_to_week_switch_point);
@@ -95,18 +96,20 @@ Ext.define('CustomApp', {
         this.logger.log("fetching snapshots at ", day);
         var project = this.getContext().getProject().ObjectID;
         var day_calculator = Ext.create('TSDay',{
-            baselineFieldName: config.baseline_field_name,
+            piSizeFieldName: me.alternate_pi_size_field,
+            wpSizeFieldName: me.alternate_wp_size_field,
             JSDate: day
         });
         
         if ( day < new Date() ) {
             this.logger.log("creating store");
             Ext.create('Rally.data.lookback.SnapshotStore',{
-                fetch: [config.baseline_field_name],
+                fetch: [me.alternate_pi_size_field,me.alternate_wp_size_field,"_TypeHierarchy"],
+                hydrate: ['_TypeHierarchy'],
                 autoLoad: true,
                 filters: [
                     {property:'Release',operator:'in',value:config.release_oids},
-                    {property:'_TypeHierarchy',value:config.model_type},
+                    {property:'_TypeHierarchy',operator:'in',value:config.model_types},
                     {property:'__At',operator:'=',value:Rally.util.DateTime.toIsoString(day)},
                     {property:'_ProjectHierarchy', value:project}
                 ],
@@ -190,16 +193,22 @@ Ext.define('CustomApp', {
         this.logger.log("_getSeries");
         var series = [];
         
-        var baseline_data = [];
+        var pi_size_data = [];
+        var wp_size_data = [];
         Ext.Array.each(days, function(day){
-            var group_value = day.get('baselineTotal');
+            var pi_size = day.get('piSizeTotal');
+            var wp_size = day.get('wpSizeTotal');
             if ( day.get('JSDate') > new Date() ) {
-                group_value = null;
+                pi_size = null;
+                wp_size = null;
             }
-            baseline_data.push(group_value);
+            pi_size_data.push(pi_size);
+            wp_size_data.push(wp_size);
         });
         
-        series.push({type:'line',name:'Feature Scope',data:baseline_data});
+        series.push({type:'line',name:'Feature Scope',data:pi_size_data});
+        series.push({type:'line',name:'WorkProduct Scope',data:wp_size_data});
+        
         return series;
     },
     /*
