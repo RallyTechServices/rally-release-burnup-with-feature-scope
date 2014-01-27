@@ -104,8 +104,8 @@ Ext.define('CustomApp', {
         if ( day < new Date() ) {
             this.logger.log("creating store");
             Ext.create('Rally.data.lookback.SnapshotStore',{
-                fetch: [me.alternate_pi_size_field,me.alternate_wp_size_field,"_TypeHierarchy"],
-                hydrate: ['_TypeHierarchy'],
+                fetch: [me.alternate_pi_size_field,me.alternate_wp_size_field,"_TypeHierarchy","ScheduleState"],
+                hydrate: ['_TypeHierarchy','ScheduleState'],
                 autoLoad: true,
                 filters: [
                     {property:'Release',operator:'in',value:config.release_oids},
@@ -195,20 +195,26 @@ Ext.define('CustomApp', {
         
         var pi_size_data = [];
         var wp_size_data = [];
+        var wp_accepted_data = [];
+        
         Ext.Array.each(days, function(day){
             var pi_size = day.get('piSizeTotal');
             var wp_size = day.get('wpSizeTotal');
+            var wp_accepted_size = day.get('wpAcceptedTotal');
             if ( day.get('JSDate') > new Date() ) {
                 pi_size = null;
                 wp_size = null;
+                wp_accepted_size = null;
             }
             pi_size_data.push(pi_size);
             wp_size_data.push(wp_size);
+            wp_accepted_data.push(wp_accepted_size);
         });
         
         series.push({type:'line',name:'Feature Scope',data:pi_size_data});
         series.push({type:'line',name:'WorkProduct Scope',data:wp_size_data});
-        
+        series.push({type:'area',name:'WorkProduct Burn Up',data:wp_accepted_data});
+
         return series;
     },
     /*

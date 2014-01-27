@@ -14,7 +14,8 @@
         {name:'piSizeFieldName',type:'string',defaultValue:'c_PIPlanEstimate'}, /* the name of the field with a value to add (or count), remember the c_! */
         {name:'piSizeTotal',type:'number',defaultValue:0},
         {name:'wpSizeFieldName',type:'string',defaultValue:'PlanEstimate'},
-        {name:'wpSizeTotal',type:'number',defaultValue:0}
+        {name:'wpSizeTotal',type:'number',defaultValue:0},
+        {name:'wpAcceptedTotal',type:'number',defaultValue:0}
     ],
     constructor: function(data) {
         this.group_totals = {};
@@ -53,6 +54,7 @@
     },
     _updateWPData:function(snap){
         var wp_total = this.get('wpSizeTotal');
+        var wp_accepted_total = this.get('wpAcceptedTotal');
         var wp_field_name = this.get('wpSizeFieldName');
         
         var value_in_snap = 0;
@@ -65,6 +67,11 @@
         }
         wp_total = wp_total + value_in_snap;
         this.set('wpSizeTotal',wp_total);
+
+        if ( snap.get('ScheduleState') && snap.get('ScheduleState') == "Accepted" ) {
+            wp_accepted_total = wp_accepted_total + value_in_snap;
+            this.set('wpAcceptedTotal',wp_accepted_total);
+        }
     }
     
  });

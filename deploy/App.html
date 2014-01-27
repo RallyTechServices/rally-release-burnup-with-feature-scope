@@ -3,11 +3,11 @@
 <head>
     <title>Release Burndown with Feature Scope</title>
     <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sun Jan 26 2014 15:47:11 GMT-0800 (PST) -->
+    <!--  Build Date: Sun Jan 26 2014 19:43:07 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sun Jan 26 2014 15:47:11 GMT-0800 (PST)";
-        var CHECKSUM = 21192503965;
+        var APP_BUILD_DATE = "Sun Jan 26 2014 19:43:07 GMT-0800 (PST)";
+        var CHECKSUM = 22408365649;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc2/sdk.js"></script>
@@ -31,7 +31,8 @@
         {name:'piSizeFieldName',type:'string',defaultValue:'c_PIPlanEstimate'}, /* the name of the field with a value to add (or count), remember the c_! */
         {name:'piSizeTotal',type:'number',defaultValue:0},
         {name:'wpSizeFieldName',type:'string',defaultValue:'PlanEstimate'},
-        {name:'wpSizeTotal',type:'number',defaultValue:0}
+        {name:'wpSizeTotal',type:'number',defaultValue:0},
+        {name:'wpAcceptedTotal',type:'number',defaultValue:0}
     ],
     constructor: function(data) {
         this.group_totals = {};
@@ -70,6 +71,7 @@
     },
     _updateWPData:function(snap){
         var wp_total = this.get('wpSizeTotal');
+        var wp_accepted_total = this.get('wpAcceptedTotal');
         var wp_field_name = this.get('wpSizeFieldName');
         
         var value_in_snap = 0;
@@ -82,6 +84,11 @@
         }
         wp_total = wp_total + value_in_snap;
         this.set('wpSizeTotal',wp_total);
+
+        if ( snap.get('ScheduleState') && snap.get('ScheduleState') == "Accepted" ) {
+            wp_accepted_total = wp_accepted_total + value_in_snap;
+            this.set('wpAcceptedTotal',wp_accepted_total);
+        }
     }
     
  });
@@ -433,8 +440,8 @@ Ext.define('CustomApp', {
         if ( day < new Date() ) {
             this.logger.log("creating store");
             Ext.create('Rally.data.lookback.SnapshotStore',{
-                fetch: [me.alternate_pi_size_field,me.alternate_wp_size_field,"_TypeHierarchy"],
-                hydrate: ['_TypeHierarchy'],
+                fetch: [me.alternate_pi_size_field,me.alternate_wp_size_field,"_TypeHierarchy","ScheduleState"],
+                hydrate: ['_TypeHierarchy','ScheduleState'],
                 autoLoad: true,
                 filters: [
                     {property:'Release',operator:'in',value:config.release_oids},
@@ -524,20 +531,26 @@ Ext.define('CustomApp', {
         
         var pi_size_data = [];
         var wp_size_data = [];
+        var wp_accepted_data = [];
+        
         Ext.Array.each(days, function(day){
             var pi_size = day.get('piSizeTotal');
             var wp_size = day.get('wpSizeTotal');
+            var wp_accepted_size = day.get('wpAcceptedTotal');
             if ( day.get('JSDate') > new Date() ) {
                 pi_size = null;
                 wp_size = null;
+                wp_accepted_size = null;
             }
             pi_size_data.push(pi_size);
             wp_size_data.push(wp_size);
+            wp_accepted_data.push(wp_accepted_size);
         });
         
         series.push({type:'line',name:'Feature Scope',data:pi_size_data});
         series.push({type:'line',name:'WorkProduct Scope',data:wp_size_data});
-        
+        series.push({type:'area',name:'WorkProduct Burn Up',data:wp_accepted_data});
+
         return series;
     },
     /*
