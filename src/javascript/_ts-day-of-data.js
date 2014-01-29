@@ -15,7 +15,11 @@
         {name:'piSizeTotal',type:'number',defaultValue:0},
         {name:'wpSizeFieldName',type:'string',defaultValue:'PlanEstimate'},
         {name:'wpSizeTotal',type:'number',defaultValue:0},
-        {name:'wpAcceptedTotal',type:'number',defaultValue:0}
+        {name:'wpAcceptedTotal',type:'number',defaultValue:0},
+        {name:'leafSizeFieldName',type:'string',defaultValue:'LeafStoryPlanEstimateTotal'},
+        {name:'leafAcceptedSizeFieldName',type:'string',defaultValue:'AcceptedLeafStoryPlanEstimateTotal'},
+        {name:'leafAcceptedTotal',type:'number',defaultValue:0},
+        {name:'leafTotal',type:'number',defaultValue:0}
     ],
     constructor: function(data) {
         this.group_totals = {};
@@ -39,18 +43,37 @@
     },
     _updatePIData:function(snap){
         var pi_total = this.get('piSizeTotal');
-        var pi_field_name = this.get('piSizeFieldName');
+        var leaf_total = this.get('leafTotal');
+        var leaf_acceptance_total = this.get('leafAcceptedTotal');
         
-        var value_in_snap = 0;
+        var pi_field_name = this.get('piSizeFieldName');
+        var leaf_size_field_name = this.get('leafSizeFieldName');
+        var leaf_accepted_size_field_name = this.get('leafAcceptedSizeFieldName');
+        
+        var pi_value_in_snap = 0;
+        var leaf_value_in_snap = 0;
+        var leaf_accepted_value_in_snap = 0;
+        
         if ( pi_field_name === "Count" ) {
-            value_in_snap = 1;
+            pi_value_in_snap = 1;
         } else {
             if (Ext.isNumber(snap.get(pi_field_name))) {
-                value_in_snap = snap.get(pi_field_name);
+                pi_value_in_snap = snap.get(pi_field_name);
             }
         }
-        pi_total = pi_total + value_in_snap;
+        if (Ext.isNumber(snap.get(leaf_size_field_name))){
+            leaf_value_in_snap = snap.get(leaf_size_field_name);
+        }
+        if (Ext.isNumber(snap.get(leaf_accepted_size_field_name))){
+            leaf_accepted_value_in_snap = snap.get(leaf_accepted_size_field_name);
+        }
+
+        pi_total = pi_total + pi_value_in_snap;
+        leaf_total = leaf_total + leaf_value_in_snap;
+        leaf_acceptance_total = leaf_acceptance_total + leaf_accepted_value_in_snap;
         this.set('piSizeTotal',pi_total);
+        this.set('leafTotal',leaf_total);
+        this.set('leafAcceptedTotal',leaf_acceptance_total);
     },
     _updateWPData:function(snap){
         var wp_total = this.get('wpSizeTotal');

@@ -53,6 +53,10 @@ Ext.define('mockSnap',{
         {name:'Blocked',type:'boolean'},
         {name:'c_Effort',type:'float'},
         {name:'c_PIPlanEstimate',type:'float'},
-        {name:'PlanEstimate',type:'float'}
+        {name:'PlanEstimate',type:'float'},
+        {name:'AcceptedLeafStoryPlanEstimateTotal',type:'float'},
+        {name:'LeafStoryPlanEstimateTotal',type:'float'},
+        {name:'AcceptedLeafStoryCount',type:'float'},
+        {name:'LeafStoryCount',type:'float'}
     ]
 });

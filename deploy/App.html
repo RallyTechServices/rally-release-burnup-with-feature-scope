@@ -3,11 +3,11 @@
 <head>
     <title>Release Burndown with Feature Scope</title>
     <!--  (c) 2014 Rally Software Development Corp.  All Rights Reserved. -->
-    <!--  Build Date: Sun Jan 26 2014 19:43:07 GMT-0800 (PST) -->
+    <!--  Build Date: Tue Jan 28 2014 20:21:00 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sun Jan 26 2014 19:43:07 GMT-0800 (PST)";
-        var CHECKSUM = 22408365649;
+        var APP_BUILD_DATE = "Tue Jan 28 2014 20:21:00 GMT-0800 (PST)";
+        var CHECKSUM = 26573395361;
     </script>
     
     <script type="text/javascript" src="/apps/2.0rc2/sdk.js"></script>
@@ -32,7 +32,11 @@
         {name:'piSizeTotal',type:'number',defaultValue:0},
         {name:'wpSizeFieldName',type:'string',defaultValue:'PlanEstimate'},
         {name:'wpSizeTotal',type:'number',defaultValue:0},
-        {name:'wpAcceptedTotal',type:'number',defaultValue:0}
+        {name:'wpAcceptedTotal',type:'number',defaultValue:0},
+        {name:'leafSizeFieldName',type:'string',defaultValue:'LeafStoryPlanEstimateTotal'},
+        {name:'leafAcceptedSizeFieldName',type:'string',defaultValue:'AcceptedLeafStoryPlanEstimateTotal'},
+        {name:'leafAcceptedTotal',type:'number',defaultValue:0},
+        {name:'leafTotal',type:'number',defaultValue:0}
     ],
     constructor: function(data) {
         this.group_totals = {};
@@ -56,18 +60,37 @@
     },
     _updatePIData:function(snap){
         var pi_total = this.get('piSizeTotal');
-        var pi_field_name = this.get('piSizeFieldName');
+        var leaf_total = this.get('leafTotal');
+        var leaf_acceptance_total = this.get('leafAcceptedTotal');
         
-        var value_in_snap = 0;
+        var pi_field_name = this.get('piSizeFieldName');
+        var leaf_size_field_name = this.get('leafSizeFieldName');
+        var leaf_accepted_size_field_name = this.get('leafAcceptedSizeFieldName');
+        
+        var pi_value_in_snap = 0;
+        var leaf_value_in_snap = 0;
+        var leaf_accepted_value_in_snap = 0;
+        
         if ( pi_field_name === "Count" ) {
-            value_in_snap = 1;
+            pi_value_in_snap = 1;
         } else {
             if (Ext.isNumber(snap.get(pi_field_name))) {
-                value_in_snap = snap.get(pi_field_name);
+                pi_value_in_snap = snap.get(pi_field_name);
             }
         }
-        pi_total = pi_total + value_in_snap;
+        if (Ext.isNumber(snap.get(leaf_size_field_name))){
+            leaf_value_in_snap = snap.get(leaf_size_field_name);
+        }
+        if (Ext.isNumber(snap.get(leaf_accepted_size_field_name))){
+            leaf_accepted_value_in_snap = snap.get(leaf_accepted_size_field_name);
+        }
+
+        pi_total = pi_total + pi_value_in_snap;
+        leaf_total = leaf_total + leaf_value_in_snap;
+        leaf_acceptance_total = leaf_acceptance_total + leaf_accepted_value_in_snap;
         this.set('piSizeTotal',pi_total);
+        this.set('leafTotal',leaf_total);
+        this.set('leafAcceptedTotal',leaf_acceptance_total);
     },
     _updateWPData:function(snap){
         var wp_total = this.get('wpSizeTotal');
@@ -340,6 +363,8 @@ Ext.define('CustomApp', {
     logger: new Rally.technicalservices.Logger(),
     alternate_pi_size_field: 'c_PIPlanEstimate',
     alternate_wp_size_field: 'PlanEstimate',
+    alternate_leaf_size_field: 'LeafStoryPlanEstimateTotal',
+    alternate_leaf_accepted_size_field: 'AcceptedLeafStoryPlanEstimateTotal',
     defaults: { padding: 5, margin: 5 },
     items: [
         {xtype:'container',itemId:'selector_box'},
@@ -398,13 +423,15 @@ Ext.define('CustomApp', {
         var me = this;
         this._mask("Loading Historical Data");
 
+        //var model_types =  ['HierarchicalRequirement','Defect','TestSet','PortfolioItem'];
+        var model_types = ['PortfolioItem'];
         this.config = {
             start_date:start_date,
             end_date:end_date,
             day_to_week_switch_point: 30,
             baseline_field_name: field_name,
             release_oids: release_oids,
-            model_types: ['HierarchicalRequirement','Defect','TestSet','PortfolioItem']
+            model_types: model_types
         };
         var config = this.config;
         this.logger.log("Getting array of days ",config.start_date,config.end_date,true,config.day_to_week_switch_point);
@@ -437,10 +464,14 @@ Ext.define('CustomApp', {
             JSDate: day
         });
         
+        var fetch = [ me.alternate_pi_size_field,me.alternate_wp_size_field,
+            me.alternate_leaf_size_field, me.alternate_leaf_accepted_size_field,
+            "_TypeHierarchy","ScheduleState"];
+
         if ( day < new Date() ) {
             this.logger.log("creating store");
             Ext.create('Rally.data.lookback.SnapshotStore',{
-                fetch: [me.alternate_pi_size_field,me.alternate_wp_size_field,"_TypeHierarchy","ScheduleState"],
+                fetch: fetch,
                 hydrate: ['_TypeHierarchy','ScheduleState'],
                 autoLoad: true,
                 filters: [
@@ -532,24 +563,35 @@ Ext.define('CustomApp', {
         var pi_size_data = [];
         var wp_size_data = [];
         var wp_accepted_data = [];
+        var leaf_size_data = [];
+        var leaf_accepted_size_data = [];
         
         Ext.Array.each(days, function(day){
             var pi_size = day.get('piSizeTotal');
             var wp_size = day.get('wpSizeTotal');
             var wp_accepted_size = day.get('wpAcceptedTotal');
+            var leaf_size = day.get('leafTotal');
+            var leaf_accepted_size = day.get('leafAcceptedTotal');
+            
             if ( day.get('JSDate') > new Date() ) {
                 pi_size = null;
                 wp_size = null;
                 wp_accepted_size = null;
+                leaf_size = null;
+                leaf_accepted_size = null;
             }
             pi_size_data.push(pi_size);
             wp_size_data.push(wp_size);
             wp_accepted_data.push(wp_accepted_size);
+            leaf_size_data.push(leaf_size);
+            leaf_accepted_size_data.push(leaf_accepted_size);
         });
         
         series.push({type:'line',name:'Feature Scope',data:pi_size_data});
-        series.push({type:'line',name:'WorkProduct Scope',data:wp_size_data});
-        series.push({type:'area',name:'WorkProduct Burn Up',data:wp_accepted_data});
+//        series.push({type:'line',name:'WorkProduct Scope',data:wp_size_data});
+//        series.push({type:'area',name:'WorkProduct Burn Up',data:wp_accepted_data});
+        series.push({type:'line',name:'Leaf Story Scope',data:leaf_size_data});
+        series.push({type:'area',name:'Leaf Story Burn Up',data:leaf_accepted_size_data});
 
         return series;
     },

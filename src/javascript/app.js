@@ -4,6 +4,8 @@ Ext.define('CustomApp', {
     logger: new Rally.technicalservices.Logger(),
     alternate_pi_size_field: 'c_PIPlanEstimate',
     alternate_wp_size_field: 'PlanEstimate',
+    alternate_leaf_size_field: 'LeafStoryPlanEstimateTotal',
+    alternate_leaf_accepted_size_field: 'AcceptedLeafStoryPlanEstimateTotal',
     defaults: { padding: 5, margin: 5 },
     items: [
         {xtype:'container',itemId:'selector_box'},
@@ -62,13 +64,15 @@ Ext.define('CustomApp', {
         var me = this;
         this._mask("Loading Historical Data");
 
+        //var model_types =  ['HierarchicalRequirement','Defect','TestSet','PortfolioItem'];
+        var model_types = ['PortfolioItem'];
         this.config = {
             start_date:start_date,
             end_date:end_date,
             day_to_week_switch_point: 30,
             baseline_field_name: field_name,
             release_oids: release_oids,
-            model_types: ['HierarchicalRequirement','Defect','TestSet','PortfolioItem']
+            model_types: model_types
         };
         var config = this.config;
         this.logger.log("Getting array of days ",config.start_date,config.end_date,true,config.day_to_week_switch_point);
@@ -101,10 +105,14 @@ Ext.define('CustomApp', {
             JSDate: day
         });
         
+        var fetch = [ me.alternate_pi_size_field,me.alternate_wp_size_field,
+            me.alternate_leaf_size_field, me.alternate_leaf_accepted_size_field,
+            "_TypeHierarchy","ScheduleState"];
+
         if ( day < new Date() ) {
             this.logger.log("creating store");
             Ext.create('Rally.data.lookback.SnapshotStore',{
-                fetch: [me.alternate_pi_size_field,me.alternate_wp_size_field,"_TypeHierarchy","ScheduleState"],
+                fetch: fetch,
                 hydrate: ['_TypeHierarchy','ScheduleState'],
                 autoLoad: true,
                 filters: [
@@ -196,24 +204,35 @@ Ext.define('CustomApp', {
         var pi_size_data = [];
         var wp_size_data = [];
         var wp_accepted_data = [];
+        var leaf_size_data = [];
+        var leaf_accepted_size_data = [];
         
         Ext.Array.each(days, function(day){
             var pi_size = day.get('piSizeTotal');
             var wp_size = day.get('wpSizeTotal');
             var wp_accepted_size = day.get('wpAcceptedTotal');
+            var leaf_size = day.get('leafTotal');
+            var leaf_accepted_size = day.get('leafAcceptedTotal');
+            
             if ( day.get('JSDate') > new Date() ) {
                 pi_size = null;
                 wp_size = null;
                 wp_accepted_size = null;
+                leaf_size = null;
+                leaf_accepted_size = null;
             }
             pi_size_data.push(pi_size);
             wp_size_data.push(wp_size);
             wp_accepted_data.push(wp_accepted_size);
+            leaf_size_data.push(leaf_size);
+            leaf_accepted_size_data.push(leaf_accepted_size);
         });
         
         series.push({type:'line',name:'Feature Scope',data:pi_size_data});
-        series.push({type:'line',name:'WorkProduct Scope',data:wp_size_data});
-        series.push({type:'area',name:'WorkProduct Burn Up',data:wp_accepted_data});
+//        series.push({type:'line',name:'WorkProduct Scope',data:wp_size_data});
+//        series.push({type:'area',name:'WorkProduct Burn Up',data:wp_accepted_data});
+        series.push({type:'line',name:'Leaf Story Scope',data:leaf_size_data});
+        series.push({type:'area',name:'Leaf Story Burn Up',data:leaf_accepted_size_data});
 
         return series;
     },
