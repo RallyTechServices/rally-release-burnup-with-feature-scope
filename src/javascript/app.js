@@ -168,7 +168,8 @@ Ext.define('CustomApp', {
                     title: { text: 'Release Burn Up', align: 'center' },
                     xAxis: [{
                         categories: categories,
-                        labels: {
+                         tickLength: 0,
+                         labels: {
                             align: 'left',
                             rotation: 70,
                             formatter: function() {
