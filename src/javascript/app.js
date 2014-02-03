@@ -150,7 +150,7 @@ Ext.define('CustomApp', {
         var series = this._getSeries(days);
         var increment = this._getIncrement(days);
 
-        this.down('#chart_box').removeAll();
+        this.down('#chart_box').removeAll(true);
         if ( categories[0] > new Date() ) {
             this.down('#chart_box').add({
                 xtype:'container',
@@ -158,13 +158,15 @@ Ext.define('CustomApp', {
             });
             this._unmask();
         } else {
-            this.down('#chart_box').add({
-                xtype:'rallychart',
+            var chart = Ext.create('Rally.ui.chart.Chart',{
+                chartColors: ['#5C9ACB','#5C9ACB','#000','#000','#6ab17d','#f47168'],
                 chartData: {
                     series: series
                 },
                 chartConfig: {
-                    chart: { type: 'area' },
+                    chart: { 
+                        type: 'area'
+                    },
                     title: { text: 'Release Burn Up', align: 'center' },
                     xAxis: [{
                         categories: categories,
@@ -188,6 +190,8 @@ Ext.define('CustomApp', {
                     }
                 }
             });
+            chart.setChartColors(['#5C9ACB','#5C9ACB','#000','#000','#6ab17d','#f47168']);
+            this.down('#chart_box').add(chart);
         }        
     },
     _getCategories: function(days){
@@ -229,13 +233,41 @@ Ext.define('CustomApp', {
             leaf_accepted_size_data.push(leaf_accepted_size);
         });
         
+        var pi_extension_data = this._getExtensionArray(pi_size_data);
+        var leaf_extension_data = this._getExtensionArray(leaf_size_data);
+        
         series.push({type:'line',name:'Feature Scope',data:pi_size_data});
+        series.push({type:'line',name:'Feature Scope (extended)',data:pi_extension_data,dashStyle: 'dash',showInLegend: false});
 //        series.push({type:'line',name:'WorkProduct Scope',data:wp_size_data});
 //        series.push({type:'area',name:'WorkProduct Burn Up',data:wp_accepted_data});
         series.push({type:'line',name:'Leaf Story Scope',data:leaf_size_data});
+        series.push({type:'line',name:'Leaf Story Scope (extended)',data:leaf_extension_data,dashStyle: 'dash',showInLegend: false});
+
         series.push({type:'area',name:'Leaf Story Burn Up',data:leaf_accepted_size_data});
 
         return series;
+    },
+    _getExtensionArray: function(size_data) {
+        this.logger.log("_getExtensionArray");
+        var extension_data = [];
+        var length_of_data = size_data.length;
+        var index_of_last_valid_value = -1;
+        var value_of_last_valid_value = null;
+        Ext.Array.each(size_data,function(size,idx){
+            if (size) {
+                index_of_last_valid_value = idx;
+                value_of_last_valid_value = size;
+            }
+            extension_data.push(null);
+        });
+        
+        Ext.Array.each(extension_data,function(size,idx,original_array){
+            if ( idx >= index_of_last_valid_value){
+                original_array[idx] = value_of_last_valid_value;
+            }
+        });
+        
+        return extension_data;
     },
     /*
      * determine what the distance between two x values is
