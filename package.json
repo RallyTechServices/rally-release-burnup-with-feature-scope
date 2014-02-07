@@ -1,6 +1,6 @@
 {
   "_comment": "This file is used by grunt",
-  "name": "release-burndown-w-feature-scope",
+  "name": "release-burnup-w-feature-scope",
   "version": "0.1.0",
   "dependencies": {},
   "devDependencies": {
