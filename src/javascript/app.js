@@ -159,7 +159,7 @@ Ext.define('CustomApp', {
             this._unmask();
         } else {
             var chart = Ext.create('Rally.ui.chart.Chart',{
-                chartColors: ['#5C9ACB','#5C9ACB','#000','#000','#6ab17d','#f47168'],
+                chartColors: ['#CC8800','#CC8800','#6699FF','#6699FF','#6ab17d','#f47168'],
                 chartData: {
                     series: series
                 },
@@ -190,7 +190,7 @@ Ext.define('CustomApp', {
                     }
                 }
             });
-            chart.setChartColors(['#5C9ACB','#5C9ACB','#000','#000','#6ab17d','#f47168']);
+            chart.setChartColors(['#CC8800','#CC8800','#6699FF','#6699FF','#6ab17d','#f47168']);
             this.down('#chart_box').add(chart);
         }        
     },
